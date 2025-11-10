@@ -21,11 +21,15 @@ public with sharing class StripeService {
         } else {
             Logger.error('Error: ' + response.getStatus() + ' ' + response.getStatusCode());
             Logger.saveLog();
+            Throw new StripeException('Error Creating Customer: ' + response.getStatus() + ' ' + response.getStatusCode());
         }
         return customerId;
     }
 
     public static string searchCustomerByEmail(string email) {
+        if (String.isBlank(email)) {
+            throw new StripeException('Email is require to search for Stripe Customers');
+        }
         string customerId;
         HttpRequest request = new HttpRequest();
         request.setEndpoint('callout:Stripe/v1/customers/search');
@@ -49,6 +53,8 @@ public with sharing class StripeService {
         } else {
             Logger.error('Error: ' + response.getStatus() + ' ' + response.getStatusCode());
             Logger.saveLog();
+            Throw new StripeException('Error Searching Customer: ' + response.getStatus() + ' ' + response.getStatusCode());
+
         }
         return customerId;
     }
