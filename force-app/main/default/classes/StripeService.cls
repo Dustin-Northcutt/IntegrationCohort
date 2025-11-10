@@ -23,6 +23,27 @@ public with sharing class StripeService {
         return customerId;
     }
 
+    public static void searchCustomerByEmail(string email) {
+        HttpRequest request = new HttpRequest();
+        request.setEndpoint('callout:Stripe/v1/customers/search');
+        request.setMethod('GET');
+        request.setHeader('Content-Type', 'application/x-www-form-urlencoded');
+        Map<String, Object> queryMap = new Map<String, Object>();
+        String queryString = 'email:"' + email + '"';
+        queryMap.put('query', queryString);
+        queryMap.put('limit', 1);
+        request.setBody(Utility.xWWWFormURLEncode(queryMap));
+
+        Http http = new Http();
+        HttpResponse response = http.send(request);
+        if (response.getStatus() == 'OK') {
+            System.debug(response.getBody());
+        } else {
+            Logger.error('Error: ' + response.getStatus() + ' ' + response.getStatusCode());
+            Logger.saveLog();
+        }
+    }
+
     private static Map<String, Object> setCustomerMapFromContact(Contact contact) {
         Map<String,Object> addressMap = new Map<String, Object>();
         addressMap.put('line1', contact.mailingStreet);
