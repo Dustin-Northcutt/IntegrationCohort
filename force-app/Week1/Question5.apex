@@ -5,10 +5,10 @@ request.setMethod('GET');
 Http http = new Http();
 HttpResponse response = http.send(request);
 if (response.getStatus() == 'OK') {
-    Map<string, Object> responseMap = (Map<string, Object>)JSON.deserializeUntyped(response.getBody());
-    Map<string, Object> resTransaction = (Map<string, Object>)responseMap.get('transaction');
-    Map<string, Object> transactionDetails = (Map<string, Object>)resTransaction.get('details');
-    string IP = (string)transactionDetails.get('IP');
+    Map<String, Object> responseMap = (Map<String, Object>)JSON.deserializeUntyped(response.getBody());
+    Map<String, Object> resTransaction = (Map<String, Object>)responseMap.get('transaction');
+    Map<String, Object> transactionDetails = (Map<String, Object>)resTransaction.get('details');
+    String IP = (String)transactionDetails.get('IP');
     system.debug('IP :::::::: ' + IP);
     //TODO Use ApexType instead of Maps
 } else {
