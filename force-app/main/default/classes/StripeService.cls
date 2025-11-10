@@ -1,5 +1,7 @@
 public with sharing class StripeService {
 
+    public class StripeException extends Exception{}
+
     public static string postCustomerFromContact(Contact contact) {
         String customerId;
         Map<String,Object> addressMap = new Map<String, Object>();
@@ -23,7 +25,8 @@ public with sharing class StripeService {
         return customerId;
     }
 
-    public static void searchCustomerByEmail(string email) {
+    public static string searchCustomerByEmail(string email) {
+        string customerId;
         HttpRequest request = new HttpRequest();
         request.setEndpoint('callout:Stripe/v1/customers/search');
         request.setMethod('GET');
@@ -37,11 +40,17 @@ public with sharing class StripeService {
         Http http = new Http();
         HttpResponse response = http.send(request);
         if (response.getStatus() == 'OK') {
-            System.debug(response.getBody());
+            Map<String, Object> searchResponse = (Map<String, Object>)JSON.deserializeUntyped(response.getBody());
+            List<Object> customers = (List<Object>)searchResponse.get('data');
+            if (!customers.isEmpty()) {
+                Map<String, Object> customer = (Map<String, Object>)customers[0];
+                customerId = (String)customer.get('id');
+            }
         } else {
             Logger.error('Error: ' + response.getStatus() + ' ' + response.getStatusCode());
             Logger.saveLog();
         }
+        return customerId;
     }
 
     private static Map<String, Object> setCustomerMapFromContact(Contact contact) {
