@@ -2,9 +2,71 @@ public with sharing class StripeService {
 
     public class StripeException extends Exception{}
 
-    public static string postCustomerFromContact(Contact contact) {
+    public class SearchResponse {
+        public List<Customer> data;
+    }
+    public class Customer {
+        public string id;
+        public string name;
+        public string email;
+    }
+
+    public static void upsertCustomersFromContactOnEmail(List<Contact> contacts) {
+        Map<String, Contact> emailContactMap = new Map<String, Contact>();
+        for (Contact contact : contacts) {
+            if (String.isBlank(contact.email)) {
+                Logger.warn('Contact has no email address when attempted upsert to Stripe', contact);
+                Logger.saveLog();
+                continue;
+            }
+            emailContactMap.put(contact.email, contact);
+        }
+        
+        String query = '-email:null';
+        List<StripeService.Customer> customers = searchCustomers(query);
+
+        if (!customers.isEmpty()) {
+            for (StripeService.Customer customer : customers) {
+                if (emailContactMap.containsKey(customer.email)) {
+                    updateCustomerFromContact(customer.id, emailContactMap.get(customer.email));
+                    emailContactMap.remove(customer.email);
+                }
+            }
+        }
+
+        for (Contact contact : emailContactMap.values()) {
+            createCustomerFromContact(contact);
+        }
+    }
+    
+    public static List<StripeService.Customer> searchCustomers(string query) {
+        if (String.isBlank(query)) {
+            throw new StripeException('Query is required to search for Stripe Customers');
+        }
+        List<StripeService.Customer> customers = new List<StripeService.Customer>();
+        HttpRequest request = new HttpRequest();
+        request.setEndpoint('callout:Stripe/v1/customers/search');
+        request.setMethod('GET');
+        request.setHeader('Content-Type', 'application/x-www-form-urlencoded');
+        Map<String, Object> queryMap = new Map<String, Object>();
+        queryMap.put('query', query);
+        request.setBody(Utility.xWWWFormURLEncode(queryMap));
+
+        Http http = new Http();
+        HttpResponse response = http.send(request);
+        if (response.getStatus() == 'OK') {
+            StripeService.SearchResponse searchResponse = (StripeService.SearchResponse)JSON.deserialize(response.getBody(), StripeService.SearchResponse.class);
+            customers = searchResponse.data;
+        } else {
+            Logger.error('Error performing query: ' + response.getStatus() + ' ' + response.getStatusCode() + '\nQuery: ' + query);
+            Logger.saveLog();
+            Throw new StripeException('Error Searching Customer: ' + response.getStatus() + ' ' + response.getStatusCode());
+        }
+        return customers;
+    }
+
+    public static string createCustomerFromContact(Contact contact) {
         String customerId;
-        Map<String,Object> addressMap = new Map<String, Object>();
         Map<String, Object> customerMap = setCustomerMapFromContact(contact);
         HttpRequest request = new HttpRequest();
         request.setEndpoint('callout:Stripe/v1/customers');
@@ -26,35 +88,24 @@ public with sharing class StripeService {
         return customerId;
     }
 
-    public static string searchCustomerByEmail(string email) {
-        if (String.isBlank(email)) {
-            throw new StripeException('Email is require to search for Stripe Customers');
-        }
-        string customerId;
+    public static string updateCustomerFromContact(string customerId, Contact contact) {
+        Map<String, Object> customerMap = setCustomerMapFromContact(contact);
         HttpRequest request = new HttpRequest();
-        request.setEndpoint('callout:Stripe/v1/customers/search');
-        request.setMethod('GET');
+        request.setEndpoint('callout:Stripe/v1/customers' + '/' + customerId);
+        request.setMethod('POST');
         request.setHeader('Content-Type', 'application/x-www-form-urlencoded');
-        Map<String, Object> queryMap = new Map<String, Object>();
-        String queryString = 'email:"' + email + '"';
-        queryMap.put('query', queryString);
-        queryMap.put('limit', 1);
-        request.setBody(Utility.xWWWFormURLEncode(queryMap));
+        string customerPayload = Utility.xWWWFormURLEncode(customerMap);
+        request.setBody(customerPayload);
 
         Http http = new Http();
         HttpResponse response = http.send(request);
         if (response.getStatus() == 'OK') {
-            Map<String, Object> searchResponse = (Map<String, Object>)JSON.deserializeUntyped(response.getBody());
-            List<Object> customers = (List<Object>)searchResponse.get('data');
-            if (!customers.isEmpty()) {
-                Map<String, Object> customer = (Map<String, Object>)customers[0];
-                customerId = (String)customer.get('id');
-            }
+            Map<String, Object> responseMap = (Map<String, Object>)JSON.deserializeUntyped(response.getBody());
+            customerId = (String)responseMap.get('id');
         } else {
             Logger.error('Error: ' + response.getStatus() + ' ' + response.getStatusCode());
             Logger.saveLog();
-            Throw new StripeException('Error Searching Customer: ' + response.getStatus() + ' ' + response.getStatusCode());
-
+            Throw new StripeException('Error Creating Customer: ' + response.getStatus() + ' ' + response.getStatusCode());
         }
         return customerId;
     }

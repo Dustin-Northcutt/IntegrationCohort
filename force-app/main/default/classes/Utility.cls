@@ -22,6 +22,7 @@ public with sharing class Utility {
         String encodedString = payLoadMap.isEmpty() ? null : '';
         List<String> keyList = new List<String>(payLoadMap.keySet());
         for (integer i = 0; i < payLoadMap.size(); i++) {
+            if (payLoadMap.get(keyList[i]) == null) continue;
             encodedString += objectName + '[';
             encodedString += keyList[i];
             encodedString += ']';

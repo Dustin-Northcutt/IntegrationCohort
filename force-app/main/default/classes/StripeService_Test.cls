@@ -14,7 +14,7 @@ public with sharing class StripeService_Test {
             mailingCountry = 'US'
         );
         
-        string expectedCustomerId = 'cus_1234567890';
+        String expectedCustomerId = 'cus_1234567890';
         HttpResponse successResponse = new HttpResponse();
         successResponse.setHeader('Content-Type', 'application/json');
         successResponse.setBody('{"id":"' + expectedCustomerId + '"}');
@@ -23,7 +23,7 @@ public with sharing class StripeService_Test {
         Test.setMock(HttpCalloutMock.class, new MockStripeResponse_Test(successResponse));
         
         Test.startTest();
-            string customerId = StripeService.postCustomerFromContact(contact);
+            String customerId = StripeService.createCustomerFromContact(contact);
         Test.stopTest();
 
         Assert.areEqual(expectedCustomerId, customerId);
@@ -43,7 +43,7 @@ public with sharing class StripeService_Test {
             mailingCountry = 'US'
         );
 
-        string expectedCustomerId = 'cus_1234567890';
+        String expectedCustomerId = 'cus_1234567890';
         HttpResponse errorResponse = new HttpResponse();
         errorResponse.setHeader('Content-Type', 'application/json');
         errorResponse.setBody('{"id":"' + expectedCustomerId + '"}');
@@ -54,7 +54,7 @@ public with sharing class StripeService_Test {
         Boolean exceptionThrown = false;
         Test.startTest();
         try {
-            StripeService.postCustomerFromContact(contact);            
+            StripeService.createCustomerFromContact(contact);            
         } catch (StripeService.StripeException ex) {
             exceptionThrown = true;
         }
@@ -65,26 +65,27 @@ public with sharing class StripeService_Test {
 
     @isTest
     static void itSearchesCustomerSuccesfully(){
-        string email = 'test@test.com';
-        
-        string expectedCustomerId = 'cus_1234567890';
+       
+        String expectedCustomerId = 'cus_1234567890';
         HttpResponse successResponse = new HttpResponse();
         successResponse.setHeader('Content-Type', 'application/json');
         successResponse.setStatus('OK');
         successResponse.setBody('{"data": [{"id":"'+ expectedCustomerId + '"}]}');
         successResponse.setStatusCode(200);
+
+        String query = 'email:"test@test.com"';
         Test.setMock(HttpCalloutMock.class, new MockStripeResponse_Test(successResponse));
         Test.startTest();
-            string customerId = StripeService.searchCustomerByEmail(email);
+            List<StripeService.Customer> customers = StripeService.searchCustomers(query);
         Test.stopTest();
 
-        Assert.areEqual(expectedCustomerId, customerId);
+        Assert.areEqual(expectedCustomerId, customers[0].Id);
     }
 
     
     @isTest
     static void itThrowsExceptionForCustomerSearchError(){
-        string email = 'test@test.com';
+        String query = 'email:"test@test.com"';
         
         HttpResponse successResponse = new HttpResponse();
         successResponse.setStatus('Error');
@@ -94,7 +95,7 @@ public with sharing class StripeService_Test {
         Boolean exceptionThrown = false;
         Test.startTest();
             try {
-                string customerId = StripeService.searchCustomerByEmail(email);
+                List<StripeService.Customer> customers = StripeService.searchCustomers(query);
             } catch (StripeService.StripeException ex) {
                 exceptionThrown = true;
             }
@@ -103,5 +104,20 @@ public with sharing class StripeService_Test {
         Assert.isTrue(exceptionThrown);
     }
 
+    @isTest
+    static void itThrowsExceptionForMissingQuery(){
+        String query = '';
+        
+        Boolean exceptionThrown = false;
+        Test.startTest();
+            try {
+                List<StripeService.Customer> customers = StripeService.searchCustomers(query);
+            } catch (StripeService.StripeException ex) {
+                exceptionThrown = true;
+            }
+        Test.stopTest();
+
+        Assert.isTrue(exceptionThrown);
+    }
 
 }
