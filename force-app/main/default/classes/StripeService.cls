@@ -11,7 +11,10 @@ public with sharing class StripeService {
         public string email;
     }
 
-    public static void upsertCustomersFromContactOnEmail(List<Contact> contacts) {
+    public void upsertCustomersFromContactOnEmail(List<Contact> contacts) {
+        if  (contacts.isEmpty()) {
+            throw new IllegalArgumentException('Contacts argument is empty');
+        }
         Map<String, Contact> emailContactMap = new Map<String, Contact>();
         for (Contact contact : contacts) {
             if (String.isBlank(contact.email)) {
@@ -36,10 +39,11 @@ public with sharing class StripeService {
 
         for (Contact contact : emailContactMap.values()) {
             createCustomerFromContact(contact);
+            //TODO Store Stripe Customer Id on Contact
         }
     }
     
-    public static List<StripeService.Customer> searchCustomers(string query) {
+    public List<StripeService.Customer> searchCustomers(string query) {
         if (String.isBlank(query)) {
             throw new StripeException('Query is required to search for Stripe Customers');
         }
@@ -53,19 +57,13 @@ public with sharing class StripeService {
         request.setBody(Utility.xWWWFormURLEncode(queryMap));
 
         Http http = new Http();
-        HttpResponse response = http.send(request);
-        if (response.getStatus() == 'OK') {
-            StripeService.SearchResponse searchResponse = (StripeService.SearchResponse)JSON.deserialize(response.getBody(), StripeService.SearchResponse.class);
-            customers = searchResponse.data;
-        } else {
-            Logger.error('Error performing query: ' + response.getStatus() + ' ' + response.getStatusCode() + '\nQuery: ' + query);
-            Logger.saveLog();
-            Throw new StripeException('Error Searching Customer: ' + response.getStatus() + ' ' + response.getStatusCode());
-        }
+        HttpResponse response = sendRequest(request);
+        StripeService.SearchResponse searchResponse = (StripeService.SearchResponse)JSON.deserialize(response.getBody(), StripeService.SearchResponse.class);
+        customers = searchResponse.data;
         return customers;
     }
 
-    public static string createCustomerFromContact(Contact contact) {
+    public string createCustomerFromContact(Contact contact) {
         String customerId;
         Map<String, Object> customerMap = setCustomerMapFromContact(contact);
         HttpRequest request = new HttpRequest();
@@ -76,19 +74,13 @@ public with sharing class StripeService {
         request.setBody(customerPayload);
 
         Http http = new Http();
-        HttpResponse response = http.send(request);
-        if (response.getStatus() == 'OK') {
-            Map<String, Object> responseMap = (Map<String, Object>)JSON.deserializeUntyped(response.getBody());
-            customerId = (String)responseMap.get('id');
-        } else {
-            Logger.error('Error: ' + response.getStatus() + ' ' + response.getStatusCode());
-            Logger.saveLog();
-            Throw new StripeException('Error Creating Customer: ' + response.getStatus() + ' ' + response.getStatusCode());
-        }
+        HttpResponse response = sendRequest(request);
+        Map<String, Object> responseMap = (Map<String, Object>)JSON.deserializeUntyped(response.getBody());
+        customerId = (String)responseMap.get('id');
         return customerId;
     }
 
-    public static string updateCustomerFromContact(string customerId, Contact contact) {
+    public string updateCustomerFromContact(string customerId, Contact contact) {
         Map<String, Object> customerMap = setCustomerMapFromContact(contact);
         HttpRequest request = new HttpRequest();
         request.setEndpoint('callout:Stripe/v1/customers' + '/' + customerId);
@@ -98,19 +90,13 @@ public with sharing class StripeService {
         request.setBody(customerPayload);
 
         Http http = new Http();
-        HttpResponse response = http.send(request);
-        if (response.getStatus() == 'OK') {
-            Map<String, Object> responseMap = (Map<String, Object>)JSON.deserializeUntyped(response.getBody());
-            customerId = (String)responseMap.get('id');
-        } else {
-            Logger.error('Error: ' + response.getStatus() + ' ' + response.getStatusCode());
-            Logger.saveLog();
-            Throw new StripeException('Error Creating Customer: ' + response.getStatus() + ' ' + response.getStatusCode());
-        }
+        HttpResponse response =sendRequest(request);
+        Map<String, Object> responseMap = (Map<String, Object>)JSON.deserializeUntyped(response.getBody());
+        customerId = (String)responseMap.get('id');
         return customerId;
     }
 
-    private static Map<String, Object> setCustomerMapFromContact(Contact contact) {
+    private Map<String, Object> setCustomerMapFromContact(Contact contact) {
         Map<String,Object> addressMap = new Map<String, Object>();
         addressMap.put('line1', contact.mailingStreet);
         addressMap.put('city', contact.mailingCity);
@@ -126,5 +112,15 @@ public with sharing class StripeService {
 
         return customerMap;
     }
-} 
 
+    private HttpResponse sendRequest(HttpRequest request) { 
+        Http http = new Http();
+        HttpResponse response = http.send(request);
+        if (response.getStatus() != 'OK') {
+            Logger.error('Error performing query: ' + response.getStatus() + ' ' + response.getStatusCode());
+            Logger.saveLog();
+            Throw new StripeException('Stripe Callout Error: ' + response.getStatus() + ' ' + response.getStatusCode());
+        }
+        return response;
+    }
+}
