@@ -82,7 +82,7 @@ public with sharing class StripeService_Test {
 
         StripeService service = new StripeService();
         Test.startTest();
-            List<StripeService.Customer> customers = service.searchCustomers(query);
+            List<StripeCustomer> customers = service.searchCustomers(query);
         Test.stopTest();
 
         Assert.areEqual(expectedCustomerId, customers[0].Id);
@@ -97,7 +97,7 @@ public with sharing class StripeService_Test {
         StripeService service = new StripeService();
         Test.startTest();
             try {
-                List<StripeService.Customer> customers = service.searchCustomers(query);
+                List<StripeCustomer> customers = service.searchCustomers(query);
             } catch (StripeService.StripeException ex) {
                 exceptionThrown = true;
             }
@@ -164,7 +164,7 @@ public with sharing class StripeService_Test {
         Test.stopTest();
     }
 
-        @isTest
+    @isTest
     static void itUpsertsNewContactsToStripe(){
         Contact contact = new Contact(
             firstname = 'Test',
