@@ -96,7 +96,7 @@ public with sharing class StripeService {
         customerMap.put('email', contact.email);
         customerMap.put('phone', contact.phone);
         customerMap.put('address', addressMap);
-
+        System.debug('customerMap: ' + customerMap);
         return customerMap;
     }
 

@@ -1,20 +1,32 @@
 public with sharing class Utility {
 
     public static String xWWWFormURLEncode(Map<String, Object> payLoadMap) {
-        String encodedString = payLoadMap.isEmpty() ? null : '';
-        List<String> keyList = new List<String>(payLoadMap.keySet());
-        for (integer i = 0; i < payLoadMap.size(); i++) {
-            if (payLoadMap.get(keyList[i]) instanceOf Map<String,Object>) {
-                encodedString += xWWWFormURLEncodeNestedObject(keyList[i], (Map<String,Object>)payLoadMap.get(keyList[i]));
-            } else {
-                encodedString += keyList[i];
-                encodedString += '=' + EncodingUtil.urlEncode(payLoadMap.get(keyList[i]).toString(), 'UTF-8');
-            }
-
-            if (i < payLoadMap.size() - 1) {
-                encodedString += '&';
-            }
+        String encodedString; 
+        if (payLoadMap.isEmpty()) {
+            return encodedString;
+        } else {
+            encodedString = '';
         }
+        
+        List<String> keyList = new List<String>(payLoadMap.keySet());
+        for (integer i = 0; i < payLoadMap.size(); i++) {         
+            String encodedStringValue;
+            if (payLoadMap.get(keyList[i]) instanceOf Map<String,Object>) {
+                encodedStringValue = xWWWFormURLEncodeNestedObject(keyList[i], (Map<String,Object>)payLoadMap.get(keyList[i]));
+                if (String.isBlank(encodedStringValue)) continue;
+            } else {
+                if (String.isBlank(payLoadMap.get(keyList[i]).toString())) continue;
+                encodedStringValue = keyList[i];
+                encodedStringValue += '=' + EncodingUtil.urlEncode(payLoadMap.get(keyList[i]).toString(), 'UTF-8');
+            }
+            encodedStringValue += '&';
+            encodedString += encodedStringValue;
+            
+        }
+        if (encodedString.endsWith('&')) {
+            encodedString = encodedString.removeEnd('&');
+        }
+        System.debug('Encoded String: ' + encodedString);
         return encodedString;
     }
 
@@ -22,11 +34,11 @@ public with sharing class Utility {
         String encodedString = payLoadMap.isEmpty() ? null : '';
         List<String> keyList = new List<String>(payLoadMap.keySet());
         for (integer i = 0; i < payLoadMap.size(); i++) {
-            if (payLoadMap.get(keyList[i]) == null) continue;
+            if (String.isBlank((String)payLoadMap.get(keyList[i]))) continue;
             encodedString += objectName + '[';
             encodedString += keyList[i];
             encodedString += ']';
-            encodedString += '=' + EncodingUtil.urlEncode(payLoadMap.get(keyList[i]).toString(), 'UTF-8');
+            encodedString += '=' + EncodingUtil.urlEncode(payLoadMap.get(keyList[i])?.toString(), 'UTF-8');
             if (i < payLoadMap.size() - 1) {
                 encodedString += '&';
             }
