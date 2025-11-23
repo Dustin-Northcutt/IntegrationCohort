@@ -15,7 +15,7 @@ public with sharing class Utility {
                 encodedStringValue = xWWWFormURLEncodeNestedObject(keyList[i], (Map<String,Object>)payLoadMap.get(keyList[i]));
                 if (String.isBlank(encodedStringValue)) continue;
             } else {
-                if (String.isBlank(payLoadMap.get(keyList[i]).toString())) continue;
+                if (payLoadMap.get(keyList[i]) == null || String.isBlank(payLoadMap.get(keyList[i]).toString())) continue;
                 encodedStringValue = keyList[i];
                 encodedStringValue += '=' + EncodingUtil.urlEncode(payLoadMap.get(keyList[i]).toString(), 'UTF-8');
             }
@@ -26,7 +26,6 @@ public with sharing class Utility {
         if (encodedString.endsWith('&')) {
             encodedString = encodedString.removeEnd('&');
         }
-        System.debug('Encoded String: ' + encodedString);
         return encodedString;
     }
 
