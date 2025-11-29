@@ -5,6 +5,8 @@ public with sharing class QueueableUtility {
         QueueableSettings__c queSettings = QueueableSettings__c.getInstance();
         if (!queSettings.Kill_Queuables__c) {
             jobId = System.enqueueJob(job);
+            Logger.warn('Queued Job Killed: ' + jobId);
+            Logger.saveLog();
         }
         return jobId;
     }
