@@ -52,19 +52,17 @@ public with sharing class StripeService_Test {
         errorResponse.setStatusCode(400);
         Test.setMock(HttpCalloutMock.class, new MockStripeResponse_Test(errorResponse));
         
-        Boolean exceptionThrown = false;
 
         StripeService service = new StripeService();
 
         Test.startTest();
         try {
-            service.createCustomerFromContact(contact);            
+            service.createCustomerFromContact(contact);
+            Assert.fail();            
         } catch (StripeService.StripeException ex) {
-            exceptionThrown = true;
+            Assert.istrue(true);
         }
         Test.stopTest();
-
-        Assert.isTrue(exceptionThrown);
     }
 
     @isTest
