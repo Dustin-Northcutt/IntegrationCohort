@@ -8,9 +8,7 @@ public with sharing class SendLeadToOrgBQue implements Queueable, Database.Allow
     public void execute(QueueableContext qc) {
         Set<Id> remainingLeadIds = new Set<Id>();
         remainingLeadIds.addAll(leadIds);
-
-        HttpRequest request = new HttpRequest();
-        
+       
         OrgBService service = new OrgBService();
         List<Lead> payloadLeads = new List<Lead>();
         
